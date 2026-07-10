@@ -42,7 +42,8 @@ export default function Home() {
     if (!username || !password) return;
     try {
       const formData = { email: username, password, name: username }; // email used as login id
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      const rawUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      const baseUrl = rawUrl.replace(/\/$/, "");
       const res = await fetch(`${baseUrl}/api/${isLoginView ? "login" : "register"}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -77,7 +78,8 @@ export default function Home() {
         formData.append("file", attachedFile);
       }
 
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      const rawUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      const baseUrl = rawUrl.replace(/\/$/, "");
       const res = await fetch(`${baseUrl}/api/chat`, {
         method: "POST",
         body: formData,
@@ -88,10 +90,11 @@ export default function Home() {
         setMessages((prev) => [...prev, { role: "bot", content: data.response, sources: data.sources }]);
         setAttachedFile(null);
       } else {
-        setMessages((prev) => [...prev, { role: "bot", content: "Error processing request." }]);
+        const errText = await res.text();
+        setMessages((prev) => [...prev, { role: "bot", content: `Error from backend: ${res.status} - ${errText}` }]);
       }
-    } catch (err) {
-      setMessages((prev) => [...prev, { role: "bot", content: "Server connection failed." }]);
+    } catch (err: any) {
+      setMessages((prev) => [...prev, { role: "bot", content: `Server connection failed. Make sure Render is awake! Details: ${err.message}` }]);
     }
     setIsLoading(false);
   };
