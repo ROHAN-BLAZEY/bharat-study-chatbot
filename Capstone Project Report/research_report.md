@@ -376,29 +376,6 @@ The project demonstrates that the principles learned during the NVIDIA H200 inte
 
 ---
 
-## Recommendations
-
-1. **Integrate a Local LLM:** Deploy a lightweight open-source model (e.g., Llama 3 8B quantized) on the NVIDIA H200 infrastructure to add generative answering capabilities while keeping the RAG grounding layer for factual accuracy.
-
-2. **Implement Guardrail Routing:** Introduce an ultra-low latency classifier at the front gate to quickly filter simple queries (greetings, FAQs) from complex ones, preserving the expensive reasoning pipeline for multi-step questions only.
-
-3. **Expand Edge Caching:** Develop a semantic cache layer for frequently asked exam questions to minimize recurring vector database queries and lower response latency.
-
-4. **Incorporate Knowledge Graphs:** Integrate Knowledge Graphs alongside the vector database to improve the system's ability to cross-reference connected concepts across subjects (e.g., linking Constitutional provisions to landmark Supreme Court cases).
-
-5. **Add Speech Input/Output:** Integrate Web Speech API for voice-based interaction, enabling hands-free study sessions — particularly valuable for visually impaired students.
-
----
-
-## Next Steps
-
-1. **Upgrade to Agentic RAG:** Add a ReAct reasoning loop using a locally-hosted LLM to enable multi-step document analysis and cross-referencing.
-2. **Expand Edge Caching:** Develop a semantic cache layer for the agent's reasoning steps to minimize recurring tool executions.
-3. **Incorporate Local Vector Graph Structures:** Integrate Knowledge Graphs alongside the vector database.
-4. **Add Exam Simulation:** Build timed quiz modules that generate questions from uploaded study materials.
-
----
-
 ## References
 
 1. Lewis, P., et al. (2020). *Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks.* Advances in Neural Information Processing Systems (NeurIPS). https://arxiv.org/abs/2005.11401
