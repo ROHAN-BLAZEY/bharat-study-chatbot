@@ -15,10 +15,6 @@ The chatbot implements a decoupled full-stack architecture with a **FastAPI** ba
 
 The platform is deployed as a Progressive Web Application (PWA), accessible as a native-like mobile application through any browser. The architecture eliminates dependency on expensive LLM API quotas while maintaining high retrieval accuracy through vector-similarity search over user-uploaded study materials.
 
-**Deployment URLs:**
-- **Frontend (Vercel):** https://vercel.com/rohan-blazeys-projects/bharat-study-chatbot
-- **Backend (Render):** https://dashboard.render.com/web/srv-d98g8e9o3t8c739olu10
-
 ---
 
 ## H200 GPU Setup
