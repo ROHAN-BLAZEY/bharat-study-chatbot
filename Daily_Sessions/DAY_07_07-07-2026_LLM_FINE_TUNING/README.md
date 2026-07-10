@@ -1,1 +1,2 @@
-# LLM FINE TUNING\n\n**Day:** DAY 07\n**Date:** 07-07-2026\n\nThis folder contains the code and resources covered during the LLM FINE TUNING session.\n
+# LLM FINE TUNING\n\n**Day:** DAY 07\n**Date:** 07-07-2026\n\nThis folder contains the code and resources covered during the LLM FINE TUNING session.\n\n### Code Explanation: `qlora_peft_setup.py`
+This script demonstrates how to set up Parameter-Efficient Fine-Tuning (PEFT) using LoRA (Low-Rank Adaptation) via the Hugging Face `peft` library. It configures the LoRA parameters (rank, alpha, target modules) necessary to fine-tune large LLMs like Llama 3 on an H200 GPU efficiently.\n

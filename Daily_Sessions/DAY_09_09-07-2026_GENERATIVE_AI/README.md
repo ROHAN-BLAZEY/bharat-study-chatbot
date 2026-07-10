@@ -1,1 +1,3 @@
-# GENERATIVE AI\n\n**Day:** DAY 09\n**Date:** 09-07-2026\n\nThis folder contains the code and resources covered during the GENERATIVE AI session.\n
+# GENERATIVE AI\n\n**Day:** DAY 09\n**Date:** 09-07-2026\n\nThis folder contains the code and resources covered during the GENERATIVE AI session.\n\n### Code Explanations
+* **`stable_diffusion.py`**: Loads the runwayml Stable Diffusion v1.5 model via the `diffusers` library. It utilizes the GPU (if available) to generate an image based on a text prompt ("A cute brown puppy playing with a white kitten in a garden") and saves it locally.
+* **`gan_cat_dataset.py`**: Sets up the initial configuration, hyperparameters, and PyTorch `DataLoader` required to train a Generative Adversarial Network (GAN) on a custom Cat Dataset.\n

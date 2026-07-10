@@ -1,1 +1,2 @@
-# ASSESSMENT AND PRACTICE\n\n**Day:** DAY 05\n**Date:** 03-07-2026\n\nThis folder contains the code and resources covered during the ASSESSMENT AND PRACTICE session.\n
+# ASSESSMENT AND PRACTICE\n\n**Day:** DAY 05\n**Date:** 03-07-2026\n\nThis folder contains the code and resources covered during the ASSESSMENT AND PRACTICE session.\n\n### Code Explanation: `practice_exercise.py`
+This is a standard data preprocessing exercise. The script manually normalizes a NumPy array (subtracting the mean and dividing by the standard deviation) to ensure the data features have a mean of 0 and standard deviation of 1.\n

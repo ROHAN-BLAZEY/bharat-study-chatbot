@@ -1,1 +1,2 @@
-# ML FUNDAMENTALS\n\n**Day:** DAY 02\n**Date:** 30-06-2026\n\nThis folder contains the code and resources covered during the ML FUNDAMENTALS session.\n
+# ML FUNDAMENTALS\n\n**Day:** DAY 02\n**Date:** 30-06-2026\n\nThis folder contains the code and resources covered during the ML FUNDAMENTALS session.\n\n### Code Explanation: `sklearn_basics.py`
+This script demonstrates the fundamentals of Machine Learning using `scikit-learn`. It initializes a basic Linear Regression model, trains it on sample 2D data arrays, and predicts new outputs to illustrate the standard `fit()` and `predict()` workflow.\n

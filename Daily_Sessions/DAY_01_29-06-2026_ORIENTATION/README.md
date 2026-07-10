@@ -1,1 +1,2 @@
-# ORIENTATION\n\n**Day:** DAY 01\n**Date:** 29-06-2026\n\nThis folder contains the code and resources covered during the ORIENTATION session.\n
+# ORIENTATION\n\n**Day:** DAY 01\n**Date:** 29-06-2026\n\nThis folder contains the code and resources covered during the ORIENTATION session.\n\n### Code Explanation: `gpu_check.py`
+This script checks if PyTorch is installed correctly and verifies whether a compatible NVIDIA GPU (like the H200) is available for CUDA acceleration. If a GPU is found, it prints the device name and count.\n

@@ -1,1 +1,5 @@
-# COMPUTER VISION\n\n**Day:** DAY 10\n**Date:** 10-07-2026\n\nThis folder contains the code and resources covered during the COMPUTER VISION session.\n
+# COMPUTER VISION\n\n**Day:** DAY 10\n**Date:** 10-07-2026\n\nThis folder contains the code and resources covered during the COMPUTER VISION session.\n\n### Code Explanations
+* **`cnn_flowers_training.py`**: Configures a TensorFlow/Keras environment to train a CNN on a flowers dataset. It verifies the local directory structure and prepares the data pipelines.
+* **`cnn_inference.py`**: Loads a test image, preprocesses it into a NumPy array, and uses the trained Keras model to predict the flower class, outputting the result with confidence scores via Matplotlib.
+* **`roboflow_inference.py`**: Uses the `inference_sdk` to query a custom Roboflow model hosted on their serverless API, demonstrating how to run remote computer vision inference on local images.
+* **`unzip_dataset.py`**: A quick utility script used in Google Colab to extract the downloaded dataset ZIP file into the working directory.\n

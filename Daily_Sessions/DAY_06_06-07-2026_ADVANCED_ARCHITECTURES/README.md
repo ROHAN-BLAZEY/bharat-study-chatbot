@@ -1,1 +1,2 @@
-# ADVANCED ARCHITECTURES\n\n**Day:** DAY 06\n**Date:** 06-07-2026\n\nThis folder contains the code and resources covered during the ADVANCED ARCHITECTURES session.\n
+# ADVANCED ARCHITECTURES\n\n**Day:** DAY 06\n**Date:** 06-07-2026\n\nThis folder contains the code and resources covered during the ADVANCED ARCHITECTURES session.\n\n### Code Explanation: `transformer_block.py`
+This script builds a custom Transformer Block using PyTorch. It utilizes `nn.MultiheadAttention` to allow the model to focus on different parts of the input sequence, followed by Layer Normalization (`nn.LayerNorm`) and a Feed-Forward network to process the attention outputs.\n

@@ -1,1 +1,2 @@
-# FINAL DELIVERABLES\n\n**Day:** DAY 11\n**Date:** 11-07-2026\n\nThis folder contains the code and resources covered during the FINAL DELIVERABLES session.\n
+# FINAL DELIVERABLES\n\n**Day:** DAY 11\n**Date:** 11-07-2026\n\nThis folder contains the code and resources covered during the FINAL DELIVERABLES session.\n\n### Code Explanation: `project_evaluation.py`
+This script contains a mock evaluation function that calculates a final project score based on model accuracy, API response time (latency), and the number of implemented features, simulating the final grading criteria for the capstone project.\n

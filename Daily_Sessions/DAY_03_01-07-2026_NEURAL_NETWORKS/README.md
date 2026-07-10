@@ -1,1 +1,2 @@
-# NEURAL NETWORKS\n\n**Day:** DAY 03\n**Date:** 01-07-2026\n\nThis folder contains the code and resources covered during the NEURAL NETWORKS session.\n
+# NEURAL NETWORKS\n\n**Day:** DAY 03\n**Date:** 01-07-2026\n\nThis folder contains the code and resources covered during the NEURAL NETWORKS session.\n\n### Code Explanation: `pytorch_nn.py`
+This code defines a simple Feed-Forward Neural Network (Multi-Layer Perceptron) from scratch using PyTorch. It inherits from `nn.Module`, creates two fully connected (`Linear`) layers with a ReLU activation function in between, and implements the `forward` pass.\n

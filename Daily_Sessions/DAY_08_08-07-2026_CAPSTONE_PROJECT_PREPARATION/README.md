@@ -1,1 +1,2 @@
-# CAPSTONE PROJECT PREPARATION\n\n**Day:** DAY 08\n**Date:** 08-07-2026\n\nThis folder contains the code and resources covered during the CAPSTONE PROJECT PREPARATION session.\n
+# CAPSTONE PROJECT PREPARATION\n\n**Day:** DAY 08\n**Date:** 08-07-2026\n\nThis folder contains the code and resources covered during the CAPSTONE PROJECT PREPARATION session.\n\n### Code Explanation: `rag_skeleton.py`
+This script outlines the basic structure of a Retrieval-Augmented Generation (RAG) pipeline. It provides a skeleton class for document ingestion (chunking/vectorizing) and querying the vector store to fetch relevant context before passing it to an LLM.\n
