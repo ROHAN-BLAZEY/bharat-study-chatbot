@@ -28,6 +28,10 @@ app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, 
 
 ai_agent = DualRAGAgent()
 
+@app.get("/")
+def read_root():
+    return {"status": "Bharat Study Chatbot Backend is running perfectly! Please visit the Vercel frontend URL to use the application."}
+
 class AuthData(BaseModel):
     name: str = ""
     email: str
