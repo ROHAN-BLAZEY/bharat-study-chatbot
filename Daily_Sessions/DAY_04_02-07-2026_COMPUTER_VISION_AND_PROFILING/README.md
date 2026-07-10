@@ -1,0 +1,1 @@
+# COMPUTER VISION AND PROFILING\n\n**Day:** DAY 04\n**Date:** 02-07-2026\n\nThis folder contains the code and resources covered during the COMPUTER VISION AND PROFILING session.\n

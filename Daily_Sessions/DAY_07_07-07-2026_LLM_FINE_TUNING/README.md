@@ -1,0 +1,1 @@
+# LLM FINE TUNING\n\n**Day:** DAY 07\n**Date:** 07-07-2026\n\nThis folder contains the code and resources covered during the LLM FINE TUNING session.\n

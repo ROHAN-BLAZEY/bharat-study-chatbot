@@ -1,0 +1,1 @@
+# ORIENTATION\n\n**Day:** DAY 01\n**Date:** 29-06-2026\n\nThis folder contains the code and resources covered during the ORIENTATION session.\n

@@ -1,0 +1,1 @@
+# GENERATIVE AI\n\n**Day:** DAY 09\n**Date:** 09-07-2026\n\nThis folder contains the code and resources covered during the GENERATIVE AI session.\n

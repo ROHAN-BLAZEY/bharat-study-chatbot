@@ -1,0 +1,1 @@
+# ASSESSMENT AND PRACTICE\n\n**Day:** DAY 05\n**Date:** 03-07-2026\n\nThis folder contains the code and resources covered during the ASSESSMENT AND PRACTICE session.\n

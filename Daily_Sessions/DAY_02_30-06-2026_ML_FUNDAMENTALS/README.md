@@ -1,0 +1,1 @@
+# ML FUNDAMENTALS\n\n**Day:** DAY 02\n**Date:** 30-06-2026\n\nThis folder contains the code and resources covered during the ML FUNDAMENTALS session.\n
