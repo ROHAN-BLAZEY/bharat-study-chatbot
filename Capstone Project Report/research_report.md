@@ -7,7 +7,7 @@
 
 ---
 
-## Executive Summary
+## Abstract
 
 This capstone project presents the design, development, and deployment of **Bharat Study Chatbot** — an enterprise-grade, Retrieval-Augmented Generation (RAG) AI assistant purpose-built for Indian competitive exam preparation (UPSC, Defence, GATE, SSC). The system was developed during a 10-day intensive program utilizing NVIDIA H200 GPU infrastructure at Presidency University.
 
