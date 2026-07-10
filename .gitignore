@@ -1,13 +1,30 @@
-.web
-*.py[cod]
-assets/external/
-.states
+# Dependencies
+node_modules/
+.venv/
+
+# Build output
+.next/
+.web/
+
+# Python cache
 __pycache__/
+*.py[cod]
 *.pyc
+
+# Database & runtime files
 *.db
-.env
+chroma_db/
 temp_*/
 backend_runtime.log
-.web/
-chroma_db/
-.venv/
+
+# Environment
+.env
+
+# IDE / AI assistant
+CLAUDE.md
+AGENTS.md
+.states
+
+# OS files
+.DS_Store
+Thumbs.db
