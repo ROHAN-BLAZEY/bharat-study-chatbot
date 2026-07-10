@@ -1,4 +1,6 @@
 import os
+from dotenv import load_dotenv
+load_dotenv()
 import PyPDF2
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -30,7 +32,7 @@ ai_agent = DualRAGAgent()
 
 @app.get("/")
 def read_root():
-    return {"status": "Bharat Study Chatbot Backend is running perfectly! Please visit the Vercel frontend URL to use the application."}
+    return {"status": "Bharat Study Chatbot Backend is running!", "version": "2.0", "engine": "Document Search + News APIs"}
 
 class AuthData(BaseModel):
     name: str = ""
@@ -60,7 +62,7 @@ def login(data: AuthData):
     return {"status": "success", "username": user.name}
 
 @app.post("/api/chat")
-async def chat_endpoint(prompt: str = Form(...), tier: str = Form(...), language: str = Form("English"), file: UploadFile = File(None)):
+async def chat_endpoint(prompt: str = Form(...), tier: str = Form("Fast"), language: str = Form("English"), file: UploadFile = File(None)):
     if file:
         file_path = f"./temp_{file.filename}"
         with open(file_path, "wb") as buffer:
@@ -79,7 +81,8 @@ async def chat_endpoint(prompt: str = Form(...), tier: str = Form(...), language
                         text_content += page.extract_text() or ""
             
             if text_content:
-                ai_agent.ingest_document(text_content, file.filename)
+                chunks = ai_agent.ingest_document(text_content, file.filename)
+                print(f"Ingested {chunks} chunks from {file.filename}")
                 
         except Exception as e:
             print(f"Error processing document: {e}")
@@ -96,11 +99,23 @@ async def chat_endpoint(prompt: str = Form(...), tier: str = Form(...), language
 
 @app.get("/api/news")
 def get_news():
-    return {"news": ai_agent.fetch_news()}
+    """Get current affairs as formatted text + raw data."""
+    news = ai_agent.fetch_news()
+    formatted = ai_agent.format_news_response(news)
+    return {"news": news, "formatted": formatted, "count": len(news)}
 
-@app.get("/api/calendar")
-def get_calendar_recap(timeframe: str):
-    # Generate recap using RAG and LLM
-    prompt = f"Provide a comprehensive recap on current affairs and news for the timeframe: {timeframe}."
-    result = ai_agent.process_prompt(prompt, "Fast")
-    return {"recap": result["response"]}
+@app.get("/api/languages")
+def get_languages():
+    """Return supported languages for the frontend dropdown."""
+    return {"languages": list(ai_agent.lang_codes.keys())}
+
+@app.get("/api/health")
+def health_check():
+    """Health check endpoint."""
+    doc_count = ai_agent.collection.count()
+    return {
+        "status": "healthy",
+        "documents_indexed": doc_count,
+        "news_apis": ["GNews", "NewsData", "ApiTube"],
+        "translation": "deep-translator (free)"
+    }
