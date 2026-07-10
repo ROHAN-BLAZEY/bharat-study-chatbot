@@ -1,1 +1,0 @@
-# DAY_2 - ML_FUNDAMENTALS\nDate: 30-06-2026\n\nCode and materials for this session will be uploaded here.
