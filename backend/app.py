@@ -1,13 +1,11 @@
 import os
-import datetime
 import PyPDF2
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from sqlalchemy import create_engine, Column, Integer, String, Text, DateTime
+from sqlalchemy import create_engine, Column, Integer, String
 from sqlalchemy.orm import declarative_base, sessionmaker
 from passlib.context import CryptContext
-from apscheduler.schedulers.background import BackgroundScheduler
 from agent import DualRAGAgent
 
 Base = declarative_base()
@@ -58,7 +56,7 @@ def login(data: AuthData):
     return {"status": "success", "username": user.name}
 
 @app.post("/api/chat")
-async def chat_endpoint(prompt: str = Form(...), tier: str = Form(...), file: UploadFile = File(None)):
+async def chat_endpoint(prompt: str = Form(...), tier: str = Form(...), language: str = Form("English"), file: UploadFile = File(None)):
     if file:
         file_path = f"./temp_{file.filename}"
         with open(file_path, "wb") as buffer:
@@ -76,7 +74,6 @@ async def chat_endpoint(prompt: str = Form(...), tier: str = Form(...), file: Up
                     for page in reader.pages:
                         text_content += page.extract_text() or ""
             
-            # Send extracted text to Vector Database for chunking and embedding
             if text_content:
                 ai_agent.ingest_document(text_content, file.filename)
                 
@@ -86,10 +83,20 @@ async def chat_endpoint(prompt: str = Form(...), tier: str = Form(...), file: Up
             if os.path.exists(file_path):
                 os.remove(file_path)
                 
-    # Process the prompt via Vector DB retrieval
-    result = ai_agent.process_prompt(prompt, tier)
+    result = ai_agent.process_prompt(prompt, tier, language)
     return {
         "response": result["response"],
         "sources": result["sources"] if result["sources"] else ["Global Knowledge Base"],
         "model": result["model"]
     }
+
+@app.get("/api/news")
+def get_news():
+    return {"news": ai_agent.fetch_news()}
+
+@app.get("/api/calendar")
+def get_calendar_recap(timeframe: str):
+    # Generate recap using RAG and LLM
+    prompt = f"Provide a comprehensive recap on current affairs and news for the timeframe: {timeframe}."
+    result = ai_agent.process_prompt(prompt, "Fast")
+    return {"recap": result["response"]}
