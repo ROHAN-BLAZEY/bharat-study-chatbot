@@ -1,0 +1,6 @@
+{
+  "version": 2,
+  "framework": "nextjs",
+  "builds": [{"src": "frontend/index.py", "use": "@vercel/python"}],
+  "routes": [{"src": "/(.*)", "dest": "frontend/index.py"}]
+}
