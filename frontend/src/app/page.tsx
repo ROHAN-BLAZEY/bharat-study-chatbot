@@ -42,7 +42,8 @@ export default function Home() {
     if (!username || !password) return;
     try {
       const formData = { email: username, password, name: username }; // email used as login id
-      const res = await fetch(`http://localhost:8000/api/${isLoginView ? "login" : "register"}`, {
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      const res = await fetch(`${baseUrl}/api/${isLoginView ? "login" : "register"}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
@@ -76,7 +77,8 @@ export default function Home() {
         formData.append("file", attachedFile);
       }
 
-      const res = await fetch("http://localhost:8000/api/chat", {
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      const res = await fetch(`${baseUrl}/api/chat`, {
         method: "POST",
         body: formData,
       });
