@@ -8,7 +8,8 @@ from pydantic import BaseModel
 from sqlalchemy import create_engine, Column, Integer, String
 from sqlalchemy.orm import declarative_base, sessionmaker
 from passlib.context import CryptContext
-from agent import DualRAGAgent
+from agent import LocalStudyAgent
+from typing import List
 
 Base = declarative_base()
 engine = create_engine("sqlite:///./bharat_study.db", connect_args={"check_same_thread": False})
@@ -28,7 +29,7 @@ Base.metadata.create_all(bind=engine)
 app = FastAPI()
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
 
-ai_agent = DualRAGAgent()
+ai_agent = LocalStudyAgent()
 
 @app.get("/")
 def read_root():
@@ -62,40 +63,70 @@ def login(data: AuthData):
     return {"status": "success", "username": user.name}
 
 @app.post("/api/chat")
-async def chat_endpoint(prompt: str = Form(...), tier: str = Form("Fast"), language: str = Form("English"), file: UploadFile = File(None)):
-    if file:
-        file_path = f"./temp_{file.filename}"
-        with open(file_path, "wb") as buffer:
-            buffer.write(await file.read())
-        
-        text_content = ""
-        ext = os.path.splitext(file.filename)[1].lower()
-        try:
-            if ext == ".txt":
-                with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
-                    text_content = f.read()
-            elif ext == ".pdf":
-                with open(file_path, "rb") as f:
-                    reader = PyPDF2.PdfReader(f)
-                    for page in reader.pages:
-                        text_content += page.extract_text() or ""
+async def chat_endpoint(
+    prompt: str = Form(...), 
+    tier: str = Form("Fast"), 
+    language: str = Form("English"), 
+    history: str = Form("[]"),
+    files: List[UploadFile] = File(None)
+):
+    if files:
+        for file in files:
+            if not file.filename:
+                continue
+            file_path = f"./temp_{file.filename}"
+            with open(file_path, "wb") as buffer:
+                buffer.write(await file.read())
             
-            if text_content:
-                chunks = ai_agent.ingest_document(text_content, file.filename)
-                print(f"Ingested {chunks} chunks from {file.filename}")
+            text_content = ""
+            ext = os.path.splitext(file.filename)[1].lower()
+            try:
+                if ext == ".txt":
+                    with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
+                        text_content = f.read()
+                elif ext == ".pdf":
+                    with open(file_path, "rb") as f:
+                        reader = PyPDF2.PdfReader(f)
+                        for page in reader.pages:
+                            text_content += page.extract_text() or ""
                 
-        except Exception as e:
-            print(f"Error processing document: {e}")
-        finally:
-            if os.path.exists(file_path):
-                os.remove(file_path)
+                if text_content:
+                    chunks = ai_agent.ingest_document(text_content, file.filename)
+                    print(f"Ingested {chunks} chunks from {file.filename}")
+                    
+            except Exception as e:
+                print(f"Error processing document: {e}")
+            finally:
+                if os.path.exists(file_path):
+                    os.remove(file_path)
                 
-    result = ai_agent.process_prompt(prompt, tier, language)
-    return {
-        "response": result["response"],
-        "sources": result["sources"] if result["sources"] else ["Global Knowledge Base"],
-        "model": result["model"]
-    }
+    import json
+    from fastapi.responses import JSONResponse, StreamingResponse
+    
+    try:
+        chat_history = json.loads(history)
+    except:
+        chat_history = []
+        
+    should_stream = language.lower() in ["english", "en"]
+    
+    if should_stream:
+        generator = ai_agent.process_prompt(prompt, tier, language, chat_history, stream=True)
+        return StreamingResponse(generator, media_type="application/x-ndjson")
+    else:
+        result = ai_agent.process_prompt(prompt, tier, language, chat_history, stream=False)
+        return {
+            "response": result["response"],
+            "sources": result["sources"] if result["sources"] else ["Global Knowledge Base"],
+            "model": result["model"]
+        }
+
+@app.post("/api/clear_documents")
+def clear_documents():
+    success = ai_agent.clear_documents()
+    if success:
+        return {"status": "success", "message": "All uploaded documents have been cleared from memory."}
+    return {"status": "error", "message": "Failed to clear documents."}
 
 @app.get("/api/news")
 def get_news():
@@ -112,10 +143,10 @@ def get_languages():
 @app.get("/api/health")
 def health_check():
     """Health check endpoint."""
-    doc_count = ai_agent.collection.count()
     return {
         "status": "healthy",
-        "documents_indexed": doc_count,
-        "news_apis": ["GNews", "NewsData", "ApiTube"],
-        "translation": "deep-translator (free)"
+        "documents_indexed": ai_agent.collection.count(),
+        "news_source": "RSS Feeds (The Hindu, Times of India)",
+        "translation": "deep-translator (free)",
+        "model": "Llama-3.2-3B-Instruct (local, free)"
     }

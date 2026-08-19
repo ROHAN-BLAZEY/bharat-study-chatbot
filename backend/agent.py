@@ -2,10 +2,15 @@ import os
 import requests
 import chromadb
 from chromadb.utils import embedding_functions
+from gpt4all import GPT4All
 from deep_translator import GoogleTranslator
 
-class DualRAGAgent:
+class LocalStudyAgent:
     def __init__(self):
+        print("Initializing Local AI Model (this may take a while to download if it's the first time)...")
+        # Using Llama 3.2 3B for significantly faster CPU speeds and high precision
+        self.model = GPT4All("Llama-3.2-3B-Instruct-Q4_0.gguf")
+        
         # 1. Vector Database (ChromaDB) Setup for document search
         self.chroma_client = chromadb.PersistentClient(path="./chroma_db")
         self.embed_fn = embedding_functions.DefaultEmbeddingFunction()
@@ -21,9 +26,6 @@ class DualRAGAgent:
             "Malayalam": "ml", "Kannada": "kn", "Punjabi": "pa",
             "Odia": "or", "Assamese": "as", "Urdu": "ur"
         }
-
-        # 3. Conversation memory for interactive chat
-        self.conversation_history = []
 
     def ingest_document(self, text: str, filename: str):
         """Split document into chunks and store in ChromaDB."""
@@ -49,82 +51,98 @@ class DualRAGAgent:
         self.collection.add(documents=chunks, metadatas=metadatas, ids=ids)
         return len(chunks)
 
-    def search_documents(self, query: str, n_results: int = 5) -> dict:
-        """Search ChromaDB for relevant document chunks."""
+    def search_documents(self, query: str, n_results: int = 3) -> dict:
+        """Hybrid Search: ChromaDB (Semantic) + BM25 (Keyword)."""
         try:
             count = self.collection.count()
             if count == 0:
                 return {"documents": [[]], "metadatas": [[]], "distances": [[]]}
             
             actual_n = min(n_results, count)
+            
+            # 1. Semantic Search (ChromaDB)
             results = self.collection.query(query_texts=[query], n_results=actual_n)
-            return results
-        except Exception:
+            semantic_docs = results['documents'][0] if results['documents'] else []
+            semantic_metas = results['metadatas'][0] if results['metadatas'] else []
+            
+            # 2. Keyword Search (BM25)
+            try:
+                from rank_bm25 import BM25Okapi
+                import numpy as np
+                all_data = self.collection.get()
+                all_docs = all_data['documents']
+                all_metas = all_data['metadatas']
+                
+                # Simple tokenization
+                tokenized_corpus = [doc.lower().split(" ") for doc in all_docs]
+                bm25 = BM25Okapi(tokenized_corpus)
+                tokenized_query = query.lower().split(" ")
+                
+                # Get top N indices
+                doc_scores = bm25.get_scores(tokenized_query)
+                top_n = np.argsort(doc_scores)[::-1][:actual_n]
+                
+                keyword_docs = [all_docs[i] for i in top_n if doc_scores[i] > 0]
+                keyword_metas = [all_metas[i] for i in top_n if doc_scores[i] > 0]
+            except Exception as e:
+                print(f"BM25 Error: {e}")
+                keyword_docs = []
+                keyword_metas = []
+                
+            # Combine and deduplicate
+            combined_docs = []
+            combined_metas = []
+            seen = set()
+            
+            for doc, meta in zip(semantic_docs + keyword_docs, semantic_metas + keyword_metas):
+                if doc not in seen:
+                    seen.add(doc)
+                    combined_docs.append(doc)
+                    combined_metas.append(meta)
+                    
+            # Return top 4 combined
+            return {"documents": [combined_docs[:4]], "metadatas": [combined_metas[:4]]}
+            
+        except Exception as e:
+            print(f"Search error: {e}")
             return {"documents": [[]], "metadatas": [[]], "distances": [[]]}
 
+    def clear_documents(self):
+        """Clear all documents from the ChromaDB collection."""
+        try:
+            doc_data = self.collection.get()
+            if doc_data and doc_data['ids']:
+                self.collection.delete(ids=doc_data['ids'])
+            return True
+        except Exception as e:
+            print(f"Error clearing documents: {e}")
+            return False
+
     def fetch_news(self) -> list:
-        """Fetch current affairs from all 3 news APIs."""
+        """Fetch current affairs completely free using public RSS feeds."""
+        import feedparser
         news = []
         
-        # GNews
-        try:
-            gnews_key = os.getenv('GNEWS_API_KEY', '')
-            if gnews_key and gnews_key != 'YOUR_KEY':
-                res = requests.get(
-                    f"https://gnews.io/api/v4/top-headlines?category=general&lang=en&country=in&apikey={gnews_key}",
-                    timeout=8
-                ).json()
-                if 'articles' in res:
-                    news.extend([{
-                        "title": a.get("title", ""),
-                        "description": a.get("description", ""),
-                        "source": a.get("source", {}).get("name", "GNews"),
-                        "url": a.get("url", ""),
-                        "published": a.get("publishedAt", "")
-                    } for a in res["articles"][:5]])
-        except Exception as e:
-            print(f"GNews Error: {e}")
+        # RSS Feeds (Free, no keys needed, no limits)
+        feeds = [
+            ("The Hindu", "https://www.thehindu.com/news/national/feeder/default.rss"),
+            ("Times of India", "https://timesofindia.indiatimes.com/rssfeeds/296589292.cms")
+        ]
         
-        # NewsData
-        try:
-            newsdata_key = os.getenv('NEWSDATA_API_KEY', '')
-            if newsdata_key and newsdata_key != 'YOUR_KEY':
-                res = requests.get(
-                    f"https://newsdata.io/api/1/news?apikey={newsdata_key}&country=in&language=en",
-                    timeout=8
-                ).json()
-                if 'results' in res and isinstance(res['results'], list):
-                    for a in res["results"][:5]:
-                        if isinstance(a, dict):
-                            news.append({
-                                "title": a.get("title", "") or "",
-                                "description": a.get("description", "") or "",
-                                "source": a.get("source_name", "NewsData") or "NewsData",
-                                "url": a.get("link", "") or "",
-                                "published": a.get("pubDate", "") or ""
-                            })
-        except Exception as e:
-            print(f"NewsData Error: {e}")
-
-        # ApiTube
-        try:
-            apitube_key = os.getenv('APITUBE_API_KEY', '')
-            if apitube_key and apitube_key != 'YOUR_KEY':
-                res = requests.get(
-                    f"https://api.apitube.io/v1/news/everything?api_key={apitube_key}&countries=IN",
-                    timeout=8
-                ).json()
-                if 'results' in res:
-                    news.extend([{
-                        "title": a.get("title", ""),
-                        "description": a.get("description", ""),
-                        "source": a.get("source", {}).get("name", "ApiTube") if isinstance(a.get("source"), dict) else "ApiTube",
-                        "url": a.get("url", ""),
-                        "published": a.get("publishedAt", "")
-                    } for a in res["results"][:5]])
-        except Exception as e:
-            print(f"ApiTube Error: {e}")
-
+        for source_name, url in feeds:
+            try:
+                feed = feedparser.parse(url)
+                for entry in feed.entries[:4]:  # Top 4 from each
+                    news.append({
+                        "title": getattr(entry, "title", ""),
+                        "description": getattr(entry, "summary", getattr(entry, "description", "")),
+                        "source": source_name,
+                        "url": getattr(entry, "link", ""),
+                        "published": getattr(entry, "published", "")
+                    })
+            except Exception as e:
+                print(f"Failed to fetch from {source_name}: {e}")
+                
         return news
 
     def translate_text(self, text: str, target_lang: str) -> str:
@@ -137,21 +155,18 @@ class DualRAGAgent:
             return text
             
         try:
-            # deep-translator handles large text by chunking automatically
-            # Limit input to avoid timeouts
             input_text = text[:4500]
             translated = GoogleTranslator(source='en', target=target_code).translate(input_text)
             return translated if translated else text
         except Exception as e:
-            # Silently fall back to English on any error
             return text
 
     def format_news_response(self, news: list) -> str:
         """Format news articles into a readable response."""
         if not news:
-            return "I couldn't fetch current affairs right now. The news APIs may be temporarily unavailable. Please try again in a moment."
+            return "I couldn't fetch current affairs right now. Please check your internet connection."
         
-        response = "📰 **Here are the latest Current Affairs from India:**\n\n"
+        response = "📰 Here are the latest Current Affairs from India (Live & Free):\n\n"
         seen_titles = set()
         count = 0
         for article in news:
@@ -160,93 +175,139 @@ class DualRAGAgent:
                 continue
             seen_titles.add(title)
             count += 1
+            
+            # Clean HTML tags out of descriptions
+            import re
             desc = article.get("description", "") or ""
+            desc = re.sub(r'<[^>]+>', '', desc)
+            
             source = article.get("source", "News")
-            response += f"**{count}. {title}**\n"
+            response += f"{count}. {title}\n"
             if desc:
-                response += f"   {desc[:200]}\n"
-            response += f"   — *{source}*\n\n"
+                response += f"   {desc[:150]}...\n"
+            response += f"   — {source}\n\n"
             if count >= 8:
                 break
         
-        response += "💡 *Ask me about any of these topics for more details, or upload a study document!*"
+        response += "💡 Ask me about any of these topics for more details, or upload a study document!"
         return response
 
-    def process_prompt(self, prompt: str, tier: str = "Fast", language: str = "English") -> dict:
-        """Process user prompts without any LLM — using document search + smart responses."""
-        
+    def process_prompt(self, prompt: str, tier: str = "Fast", language: str = "English", history: list = None, stream: bool = False):
+        """Process user prompts using Local LLM + ChromaDB RAG, with full history and streaming support."""
+        if history is None:
+            history = []
+            
         prompt_lower = prompt.strip().lower()
+        import re
+        import json
         
-        # 1. Greetings / Small Talk
+        # 1. Greetings
         greetings = ["hi", "hello", "hey", "how are you", "who are you", "good morning", 
                       "good evening", "good night", "namaste", "namaskar", "what can you do"]
-        if prompt_lower in greetings:
+        
+        clean_prompt_lower = re.sub(r'[^a-z0-9\s]', '', prompt_lower).strip()
+        
+        if clean_prompt_lower in greetings:
             response = (
-                "🙏 Namaste! I am the **Bharat Study Chatbot** — your study companion for UPSC, Defence, and Tech exam preparation.\n\n"
-                "Here's what I can do:\n"
-                "• 📰 **Current Affairs** — Get the latest Indian news\n"
-                "• 📄 **Document Q&A** — Upload a PDF/TXT file and ask questions about it\n"
-                "• 🌐 **Multilingual** — Change language using the globe icon below\n\n"
-                "How can I help you today?"
+                "🙏 Namaste! I am the Bharat Study Chatbot — your AI study companion for UPSC, Defence, and Tech exam preparation.\n\n"
+                "How can I help you today? Here are some questions you can ask me:\n"
+                "👉 \"What is the news today?\"\n"
+                "👉 \"Explain Indian economics\"\n"
+                "👉 \"What are the Fundamental Rights in the Constitution?\"\n"
+                "👉 \"Summarize the document I just uploaded\"\n\n"
+                "You can also change the language using the globe icon below!"
             )
             final_text = self.translate_text(response, language)
-            return {"response": final_text, "model": "Bharat Study Bot", "sources": []}
+            if stream:
+                def gen():
+                    yield json.dumps({"text": final_text}) + "\n"
+                    yield json.dumps({"sources": []}) + "\n"
+                return gen()
+            return {"response": final_text, "model": "Local Llama-3 AI", "sources": []}
 
         # 2. Current Affairs Request
-        news_keywords = ["news", "current affairs", "current events", "headlines", "today's news",
-                         "latest news", "whats happening", "what's happening", "current affair"]
-        if any(kw in prompt_lower for kw in news_keywords):
+        news_keywords = ["news", "current affairs", "current events", "headlines", "todays news",
+                         "latest news", "whats happening", "current affair"]
+        if any(kw in clean_prompt_lower for kw in news_keywords):
             news = self.fetch_news()
             response = self.format_news_response(news)
             final_text = self.translate_text(response, language)
             sources = list(set([a.get("source", "News") for a in news[:5]]))
+            if stream:
+                def gen():
+                    yield json.dumps({"text": final_text}) + "\n"
+                    yield json.dumps({"sources": sources}) + "\n"
+                return gen()
             return {"response": final_text, "model": "News Aggregator", "sources": sources}
 
-        # 3. Document-based Q&A — Search uploaded files
-        results = self.search_documents(prompt)
+        # 3. RAG Search + Local LLM
+        sources = []
+        system_prompt = ""
         
-        if results['documents'] and results['documents'][0] and len(results['documents'][0]) > 0:
-            # We found relevant content in uploaded documents
-            context_chunks = results['documents'][0]
-            sources = list(set([meta['source'] for meta in results['metadatas'][0]]))
-            
-            # Build a helpful response from the matched content
-            response = f"📄 **Based on your uploaded documents, here's what I found:**\n\n"
-            
-            for i, chunk in enumerate(context_chunks[:3]):
-                cleaned = chunk.strip()
-                if len(cleaned) > 50:  # Only show substantive chunks
-                    response += f"**Excerpt {i+1}:**\n{cleaned}\n\n"
-            
-            response += "---\n💡 *Want to know more? Try asking a more specific question about this topic, or upload another document.*"
-            
-            final_text = self.translate_text(response, language)
-            return {"response": final_text, "model": "Document Search", "sources": sources}
-
-        # 4. No documents uploaded — guide the user
-        # Check if it's an exam-related question
-        exam_keywords = ["upsc", "ias", "ips", "defence", "nda", "cds", "gate", "ssc", "banking",
-                         "polity", "geography", "history", "economy", "science", "constitution",
-                         "parliament", "president", "prime minister"]
+        search_query = re.sub(r'[^a-zA-Z0-9\s]', ' ', prompt).lower().strip()
         
-        if any(kw in prompt_lower for kw in exam_keywords):
-            response = (
-                f"📚 Great question about **{prompt}**!\n\n"
-                "I can help you study this topic effectively. Here's what you can do:\n\n"
-                "1. 📄 **Upload a study PDF or notes** about this topic, and I'll search through it to find relevant answers\n"
-                "2. 📰 **Ask for Current Affairs** to get the latest news related to this subject\n"
-                "3. 🔍 **Ask specific questions** after uploading your study material\n\n"
-                "💡 *Upload your NCERT, Laxmikanth, or any study material to get started!*"
-            )
+        if self.collection.count() > 0:
+            results = self.search_documents(search_query, n_results=3)
+            if results['documents'] and results['documents'][0] and len(results['documents'][0]) > 0:
+                context_chunks = results['documents'][0]
+                sources = list(set([meta['source'] for meta in results['metadatas'][0]]))
+                context_str = "\n".join(context_chunks[:3])
+                
+                system_prompt = (
+                    "You are Bharat Study Chatbot, a highly intelligent document reader and summarizer. "
+                    "Use the following document text and the chat history to answer the user's question accurately. "
+                    "Even if the user's question contains grammar issues, strange punctuation, or inconsistent casing, "
+                    "interpret their intent and provide the best possible answer from the text. "
+                    "If the answer is not in the text, use your expert knowledge to answer.\n\n"
+                    f"Document Context:\n{context_str}"
+                )
+            else:
+                system_prompt = (
+                    "You are Bharat Study Chatbot, a highly knowledgeable AI study assistant specialized in the UPSC syllabus, "
+                    "current affairs, and general study preparation. Use the chat history to understand context. Interpret the user's question despite any casing, "
+                    "punctuation, or grammar inconsistencies and answer clearly, concisely, and accurately."
+                )
+                sources = ["Local LLM Pre-trained Knowledge Base"]
         else:
-            response = (
-                f"I'd love to help you with **\"{prompt}\"**!\n\n"
-                "To give you the best answers, please:\n\n"
-                "1. 📄 **Upload a document** (PDF or TXT) with your study material — I'll search it and find relevant answers\n"
-                "2. 📰 **Try 'Current Affairs'** to get the latest Indian news\n"
-                "3. 💬 **Ask exam-related questions** like UPSC, Defence, Gate topics\n\n"
-                "💡 *The more documents you upload, the smarter I become about your subjects!*"
+            system_prompt = (
+                "You are Bharat Study Chatbot, a highly knowledgeable AI study assistant specialized in the UPSC syllabus, "
+                "current affairs, and general study preparation. Use the chat history to understand context. Interpret the user's question despite any casing, "
+                "punctuation, or grammar inconsistencies and answer clearly, concisely, and accurately."
             )
+            sources = ["Local LLM Pre-trained Knowledge Base"]
         
-        final_text = self.translate_text(response, language)
-        return {"response": final_text, "model": "Bharat Study Bot", "sources": ["Global Knowledge Base"]}
+        # Build the Llama-3 style prompt with full history
+        full_prompt = f"<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n{system_prompt}<|eot_id|>"
+        
+        # Append history to prompt
+        for msg in history:
+            role_map = "user" if msg.get("role") == "user" else "assistant"
+            content = msg.get("content", "")
+            full_prompt += f"<|start_header_id|>{role_map}<|end_header_id|>\n{content}<|eot_id|>"
+            
+        # Append the new prompt
+        full_prompt += f"<|start_header_id|>user<|end_header_id|>\n{prompt}<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n"
+        
+        if stream:
+            def llm_generator():
+                print("Streaming response via Local LLM...")
+                try:
+                    for token in self.model.generate(full_prompt, max_tokens=350, temp=0.2, streaming=True):
+                        yield json.dumps({"text": token}) + "\n"
+                except Exception as e:
+                    print(f"LLM Stream Error: {e}")
+                    yield json.dumps({"text": "\n[Error generating response]"}) + "\n"
+                # Send sources at the end
+                yield json.dumps({"sources": sources}) + "\n"
+            return llm_generator()
+        else:
+            try:
+                print("Generating response via Local LLM...")
+                output = self.model.generate(full_prompt, max_tokens=350, temp=0.2)
+                response_text = output.strip()
+            except Exception as e:
+                print(f"LLM Generation Error: {e}")
+                response_text = "I encountered an error while trying to process your request."
+
+            final_text = self.translate_text(response_text, language)
+            return {"response": final_text, "model": "Local Llama-3 AI", "sources": sources}

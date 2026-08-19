@@ -1,0 +1,31 @@
+Bharat Study Chatbot - Official Knowledge Base & FAQ
+
+Q: Who are you? What is your purpose?
+A: I am the Bharat Study Chatbot, your personal AI study companion. My purpose is to help you prepare for competitive exams like UPSC, Defence, and State PSCs. I can provide the latest current affairs, summarize documents, and answer your queries in multiple Indian languages.
+
+Q: How do I use the document summarizer?
+A: Simply click the paperclip icon in the chat interface to upload a PDF or TXT file. Once uploaded, I will read the entire document and save it in my memory. You can then ask me specific questions about the document, and I will extract the exact information for you!
+
+Q: How can I change the language?
+A: You can change the language at any time by clicking the Globe icon at the bottom of the chat interface. I support English, Hindi, Telugu, Tamil, Marathi, Bengali, Gujarati, Malayalam, Kannada, Punjabi, Odia, Assamese, and Urdu.
+
+Q: What are the main subjects in the UPSC Civil Services Preliminary Examination?
+A: The UPSC Prelims consists of two papers: General Studies Paper-I and CSAT (General Studies Paper-II). Paper-I covers Current Events, History of India, Indian and World Geography, Indian Polity and Governance, Economic and Social Development, Environmental Ecology, and General Science. CSAT focuses on Comprehension, Interpersonal skills, Logical reasoning, Analytical ability, Decision making, Problem-solving, and basic Numeracy.
+
+Q: How should I approach current affairs for UPSC?
+A: You should read at least one standard national newspaper daily (like The Hindu or The Indian Express). Focus on issues rather than mere news. Link current events with your static syllabus (Polity, Economy, Geography, etc.). You can also ask me for the "latest news" or "current affairs," and I will fetch the most important headlines for you immediately!
+
+Q: What is the best strategy for answer writing in UPSC Mains?
+A: A good answer has three parts: Introduction, Body, and Conclusion. The introduction should define the core concept or provide relevant data. The body should address the specific parts of the question, preferably using bullet points, subheadings, and flowcharts for clarity. The conclusion should be balanced, forward-looking, and constructive.
+
+Q: Can you help me with NCERT books?
+A: Yes! NCERT books (especially from Class 6 to 12) form the foundation of UPSC preparation. If you upload a chapter from an NCERT PDF, I can summarize it for you, explain complex concepts, or quiz you on the topics covered in the document.
+
+Q: How do I clear the uploaded documents from your memory?
+A: You can click the Menu icon (hamburger menu) on the top left of the chat interface, and select the option to clear all uploaded documents. This will wipe my memory of those files so you can start fresh.
+
+Q: Is this application using an external API for the AI?
+A: No! I am running on a secure, local Large Language Model (Llama 3). This means all your queries and uploaded documents stay entirely on your own device and are never sent to external servers for processing.
+
+Q: What is the negative marking scheme in UPSC Prelims?
+A: For every incorrect answer in the UPSC Prelims, there is a penalty of 1/3rd (0.33) of the marks assigned to that question. If a question is left unanswered, there is no penalty.

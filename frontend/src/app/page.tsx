@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { Moon, Sun, Paperclip, Send, Menu, X, MessageSquare, FileText, Globe, Newspaper, BookOpen } from "lucide-react";
+import { Moon, Sun, Paperclip, Send, Menu, X, MessageSquare, FileText, Globe, Newspaper, BookOpen, Mic, Volume2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 const LANGUAGES = [
@@ -32,11 +32,50 @@ export default function Home() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [language, setLanguage] = useState("English");
   const [langDropdownOpen, setLangDropdownOpen] = useState(false);
-  const [attachedFile, setAttachedFile] = useState<File | null>(null);
+  const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const langDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Speech Recognition setup
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const SpeechRecognition = typeof window !== "undefined" ? (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition : null;
+  const recognition = SpeechRecognition ? new SpeechRecognition() : null;
+  if (recognition) {
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.lang = language === "English" ? "en-US" : "hi-IN"; // basic mapping
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    recognition.onresult = (event: any) => {
+      const text = event.results[0][0].transcript;
+      setInput(prev => prev + " " + text);
+      setIsRecording(false);
+    };
+    recognition.onerror = () => setIsRecording(false);
+    recognition.onend = () => setIsRecording(false);
+  }
+
+  const toggleRecording = () => {
+    if (!recognition) return alert("Speech recognition not supported in this browser.");
+    if (isRecording) {
+      recognition.stop();
+      setIsRecording(false);
+    } else {
+      recognition.start();
+      setIsRecording(true);
+    }
+  };
+
+  const playAudio = (text: string) => {
+    if ("speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = language === "English" ? "en-US" : "hi-IN";
+      window.speechSynthesis.speak(utterance);
+    }
+  };
 
   useEffect(() => {
     if (theme === "dark") {
@@ -91,20 +130,24 @@ export default function Home() {
   const handleSendMessage = async (e?: React.FormEvent, overridePrompt?: string) => {
     if (e) e.preventDefault();
     const messageText = overridePrompt || input;
-    if (!messageText.trim() && !attachedFile) return;
+    if (!messageText.trim() && attachedFiles.length === 0) return;
 
+    // Save history before adding the new message
+    const historyToSend = messages.slice(-20).map(m => ({ role: m.role, content: m.content }));
+    
     setMessages((prev) => [...prev, { role: "user", content: messageText }]);
     setInput("");
     setIsLoading(true);
 
     try {
       const formData = new FormData();
-      formData.append("prompt", messageText || "Analyze the attached file.");
+      formData.append("prompt", messageText || "Analyze the attached files.");
       formData.append("tier", "Fast");
       formData.append("language", language);
-      if (attachedFile) {
-        formData.append("file", attachedFile);
-      }
+      formData.append("history", JSON.stringify(historyToSend));
+      attachedFiles.forEach(file => {
+        formData.append("files", file);
+      });
 
       const baseUrl = getBaseUrl();
       const res = await fetch(`${baseUrl}/api/chat`, {
@@ -113,28 +156,80 @@ export default function Home() {
       });
       
       if (res.ok) {
-        const data = await res.json();
-        setMessages((prev) => [...prev, { role: "bot", content: data.response, sources: data.sources }]);
-        setAttachedFile(null);
+        if (res.headers.get('content-type')?.includes('application/x-ndjson')) {
+            const reader = res.body?.getReader();
+            const decoder = new TextDecoder();
+            setMessages((prev) => [...prev, { role: "bot", content: "", sources: [] }]);
+            setAttachedFiles([]);
+            setIsLoading(false);
+            
+            while (true) {
+                const { done, value } = await reader!.read();
+                if (done) break;
+                const chunk = decoder.decode(value, { stream: true });
+                const lines = chunk.split('\n').filter(Boolean);
+                for (const line of lines) {
+                    try {
+                        const data = JSON.parse(line);
+                        if (data.text) {
+                            setMessages(prev => {
+                                const newMsg = [...prev];
+                                newMsg[newMsg.length - 1].content += data.text;
+                                return newMsg;
+                            });
+                        }
+                        if (data.sources) {
+                            setMessages(prev => {
+                                const newMsg = [...prev];
+                                newMsg[newMsg.length - 1].sources = data.sources;
+                                return newMsg;
+                            });
+                        }
+                    } catch {}
+                }
+            }
+        } else {
+            const data = await res.json();
+            setMessages((prev) => [...prev, { role: "bot", content: data.response, sources: data.sources }]);
+            setAttachedFiles([]);
+            setIsLoading(false);
+        }
       } else {
         const errText = await res.text();
         setMessages((prev) => [...prev, { role: "bot", content: `Error from backend: ${res.status} - ${errText}` }]);
+        setIsLoading(false);
       }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Unknown error";
       setMessages((prev) => [...prev, { role: "bot", content: `Connection failed: ${message}. Make sure the backend is running.` }]);
+      setIsLoading(false);
     }
-    setIsLoading(false);
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setAttachedFile(e.target.files[0]);
+    if (e.target.files) {
+      setAttachedFiles(Array.from(e.target.files));
     }
   };
 
   const handleQuickAction = (action: string) => {
     handleSendMessage(undefined, action);
+  };
+
+  const handleClearDocuments = async () => {
+    if (confirm("Are you sure you want to delete all uploaded documents from the AI's memory?")) {
+      try {
+        const baseUrl = getBaseUrl();
+        const res = await fetch(`${baseUrl}/api/clear_documents`, { method: "POST" });
+        if (res.ok) {
+          setAttachedFiles([]);
+          alert("All documents have been successfully cleared.");
+          setSidebarOpen(false);
+        }
+      } catch {
+        alert("Failed to clear documents.");
+      }
+    }
   };
 
   const currentLang = LANGUAGES.find(l => l.code === language) || LANGUAGES[0];
@@ -159,7 +254,7 @@ export default function Home() {
             <p className="text-sm opacity-80">Your AI Study Companion</p>
           </div>
           <form onSubmit={handleLogin} className="space-y-4">
-            <div>
+            <div suppressHydrationWarning>
               <label className="block text-sm font-medium mb-1">Email / Username</label>
               <input 
                 type="text" 
@@ -167,9 +262,10 @@ export default function Home() {
                 onChange={(e) => setUsername(e.target.value)}
                 className="w-full px-4 py-3 rounded-xl bg-white/50 dark:bg-black/50 border border-gray-300 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
                 placeholder="Enter your email"
+                suppressHydrationWarning
               />
             </div>
-            <div>
+            <div suppressHydrationWarning>
               <label className="block text-sm font-medium mb-1">Password</label>
               <input 
                 type="password" 
@@ -177,6 +273,7 @@ export default function Home() {
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full px-4 py-3 rounded-xl bg-white/50 dark:bg-black/50 border border-gray-300 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
                 placeholder="Enter your password"
+                suppressHydrationWarning
               />
             </div>
             <button type="submit" className="w-full py-3 mt-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold rounded-xl transition-all shadow-lg hover:shadow-blue-500/30 active:scale-[0.98]">
@@ -248,6 +345,12 @@ export default function Home() {
               >
                 <BookOpen size={16} className="text-blue-500" /> Study Topics
               </button>
+              <button 
+                onClick={handleClearDocuments}
+                className="w-full text-left px-3 py-2.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 transition-all flex items-center gap-2 text-sm active:scale-[0.98] mt-4"
+              >
+                <X size={16} /> Clear All Documents
+              </button>
             </div>
           </div>
 
@@ -256,8 +359,8 @@ export default function Home() {
             <div className="p-3 rounded-xl bg-green-500/10 border border-green-500/20 text-green-700 dark:text-green-400 text-sm flex flex-col gap-1">
               <span className="font-semibold flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div> Connected</span>
               <span className="opacity-80">Document Search Active</span>
-              {attachedFile && (
-                <span className="opacity-80 flex items-center gap-1 mt-2 text-blue-600 dark:text-blue-400"><FileText size={14}/> {attachedFile.name}</span>
+              {attachedFiles.length > 0 && (
+                <span className="opacity-80 flex items-center gap-1 mt-2 text-blue-600 dark:text-blue-400"><FileText size={14}/> {attachedFiles.length} file(s) attached</span>
               )}
             </div>
           </div>
@@ -283,9 +386,9 @@ export default function Home() {
               <Menu size={22} />
             </button>
             <div>
-              <h2 className="font-semibold text-base">Bharat Study Agent</h2>
+              <h2 className="font-semibold text-base">Local Study AI</h2>
               <p className="text-xs opacity-70">
-                {attachedFile ? `📄 ${attachedFile.name}` : "📚 Ready to help you study"}
+                {attachedFiles.length > 0 ? `📄 ${attachedFiles.length} file(s) attached` : "📚 Ready to help you study"}
               </p>
             </div>
           </div>
@@ -351,6 +454,13 @@ export default function Home() {
               >
                 <div className={`max-w-[90%] sm:max-w-[80%] md:max-w-[70%] p-4 rounded-2xl ${msg.role === "user" ? "bg-gradient-to-br from-blue-600 to-indigo-600 text-white rounded-tr-sm" : "glass-panel rounded-tl-sm"}`}>
                   <p className="whitespace-pre-wrap leading-relaxed text-sm sm:text-base">{msg.content}</p>
+                  
+                  {msg.role === "bot" && (
+                    <button onClick={() => playAudio(msg.content)} className="mt-2 p-1.5 rounded-full hover:bg-black/5 dark:hover:bg-white/5 transition-colors" title="Read Aloud">
+                      <Volume2 size={16} className="text-blue-500" />
+                    </button>
+                  )}
+
                   {msg.sources && msg.sources.length > 0 && (
                     <div className="mt-3 pt-3 border-t border-black/10 dark:border-white/10">
                       <p className="text-xs font-semibold mb-1 flex items-center gap-1"><FileText size={12}/> Sources Consulted:</p>
@@ -386,16 +496,17 @@ export default function Home() {
               ref={fileInputRef} 
               onChange={handleFileChange}
               accept=".pdf,.txt"
+              multiple
             />
             
             {/* File Attach Button */}
             <button 
               type="button" 
               onClick={() => fileInputRef.current?.click()}
-              className={`p-2.5 sm:p-3 rounded-full transition-colors shrink-0 ${attachedFile ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30' : 'hover:bg-black/5 dark:hover:bg-white/5'}`}
+              className={`p-2.5 sm:p-3 rounded-full transition-colors shrink-0 ${attachedFiles.length > 0 ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30' : 'hover:bg-black/5 dark:hover:bg-white/5'}`}
               title="Attach File"
             >
-              {attachedFile ? <FileText size={18} /> : <Paperclip size={18} />}
+              {attachedFiles.length > 0 ? <FileText size={18} /> : <Paperclip size={18} />}
             </button>
 
             {/* Language Globe Dropdown */}
@@ -440,25 +551,35 @@ export default function Home() {
                 type="text" 
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                placeholder={attachedFile ? `Ask about ${attachedFile.name}...` : "Message Bharat Study..."}
+                placeholder={attachedFiles.length > 0 ? `Ask about ${attachedFiles.length} file(s)...` : "Message Bharat Study..."}
                 className="flex-1 bg-transparent border-none focus:outline-none focus:ring-0 px-2 text-sm sm:text-base min-w-0"
                 disabled={isLoading}
               />
+
+              <button 
+                type="button"
+                onClick={toggleRecording}
+                className={`p-2.5 sm:p-3 rounded-full transition-colors shrink-0 ${isRecording ? 'bg-red-500 text-white animate-pulse' : 'hover:bg-black/5 dark:hover:bg-white/5 text-gray-500'}`}
+                title="Speak to Chatbot"
+              >
+                <Mic size={18} />
+              </button>
+
               <button 
                 type="submit" 
-                disabled={(!input.trim() && !attachedFile) || isLoading}
+                disabled={(!input.trim() && attachedFiles.length === 0) || isLoading}
                 className="p-2.5 sm:p-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-full transition-all disabled:opacity-50 disabled:cursor-not-allowed shrink-0 active:scale-95"
               >
                 <Send size={18} />
               </button>
             </form>
             
-            {attachedFile && (
+            {attachedFiles.length > 0 && (
               <button 
-                onClick={() => setAttachedFile(null)}
+                onClick={() => setAttachedFiles([])}
                 className="absolute -top-10 left-4 glass-panel px-3 py-1 rounded-full text-xs flex items-center gap-1 text-red-500 hover:bg-red-500/10 transition-colors"
               >
-                Remove {attachedFile.name} <X size={12}/>
+                Clear {attachedFiles.length} file(s) <X size={12}/>
               </button>
             )}
           </div>
