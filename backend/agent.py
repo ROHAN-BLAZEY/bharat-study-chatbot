@@ -287,11 +287,11 @@ class LocalStudyAgent:
         full_prompt = f"<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n{system_prompt}<|eot_id|>"
         
         # Append history to prompt (truncate old messages to save tokens)
-        for msg in history[-1:]:  # Only keep the absolute last message for maximum CPU speed
+        for msg in history[-4:]:  # Keep last 4 messages (2 interactions) for to-and-fro conversation
             role_map = "user" if msg.get("role") == "user" else "assistant"
             content = msg.get("content", "")
-            if len(content) > 150:
-                content = content[:150] + "... [truncated]"
+            if len(content) > 300:
+                content = content[:300] + "... [truncated]"
             full_prompt += f"<|start_header_id|>{role_map}<|end_header_id|>\n{content}<|eot_id|>"
             
         # Append the new prompt
