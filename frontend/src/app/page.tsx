@@ -106,8 +106,10 @@ export default function Home() {
   }, []);
 
   const getBaseUrl = () => {
-    const rawUrl = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8080";
-    return rawUrl.replace(/\/$/, "");
+    if (typeof window !== "undefined") {
+      return `http://${window.location.hostname}:8080`;
+    }
+    return "http://127.0.0.1:8080";
   };
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -253,11 +255,7 @@ export default function Home() {
   if (!isLoggedIn) {
     return (
       <main className="flex min-h-screen items-center justify-center p-4 safe-area-padding">
-        <div className="absolute top-4 right-4 z-50">
-          <button suppressHydrationWarning onClick={() => setTheme(theme === "dark" ? "light" : "dark")} className="p-2 rounded-full glass-panel hover:bg-black/10 dark:hover:bg-white/10 transition-colors">
-            {theme === "dark" ? <Sun size={24} /> : <Moon size={24} />}
-          </button>
-        </div>
+        {/* Theme toggle removed to force Light Mode (black text) */}
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -380,15 +378,7 @@ export default function Home() {
             </div>
           </div>
 
-          <div>
-            <p className="text-xs uppercase font-bold opacity-50 mb-2">Settings</p>
-            <div className="flex items-center justify-between">
-              <span className="text-sm opacity-80">Theme</span>
-              <button onClick={() => setTheme(theme === "dark" ? "light" : "dark")} className="p-2 rounded-lg bg-white/50 dark:bg-black/50 transition-colors">
-                {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
-              </button>
-            </div>
-          </div>
+        {/* Theme toggle removed */}
         </div>
       </motion.aside>
 
@@ -467,8 +457,8 @@ export default function Home() {
                 key={idx} 
                 className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
               >
-                <div className={`max-w-[90%] sm:max-w-[80%] md:max-w-[70%] p-4 rounded-2xl ${msg.role === "user" ? "bg-gradient-to-br from-blue-600 to-indigo-600 text-white font-medium rounded-tr-sm shadow-md" : "glass-panel text-gray-900 dark:text-gray-100 rounded-tl-sm shadow-sm"}`}>
-                  <div className="prose prose-sm sm:prose-base dark:prose-invert max-w-none text-base sm:text-lg whitespace-pre-wrap leading-relaxed font-medium">
+                <div className={`max-w-[90%] sm:max-w-[80%] md:max-w-[70%] p-4 rounded-2xl ${msg.role === "user" ? "bg-blue-100 border border-blue-200 text-black font-medium rounded-tr-sm shadow-md" : "glass-panel text-gray-900 dark:text-gray-100 rounded-tl-sm shadow-sm"}`}>
+                  <div className="prose prose-sm sm:prose-base max-w-none text-base sm:text-lg whitespace-pre-wrap leading-relaxed font-medium">
                     <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
                   </div>
                   
