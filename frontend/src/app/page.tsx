@@ -3,7 +3,9 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Moon, Sun, Paperclip, Send, Menu, X, MessageSquare, FileText, Globe, Newspaper, BookOpen, Mic, Volume2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import TextareaAutosize from "react-textarea-autosize";
 const LANGUAGES = [
   { code: "English", label: "English", flag: "🇬🇧" },
   { code: "Hindi", label: "हिन्दी", flag: "🇮🇳" },
@@ -71,8 +73,11 @@ export default function Home() {
   const playAudio = (text: string) => {
     if ("speechSynthesis" in window) {
       window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(text);
+      // Remove markdown symbols for cleaner reading
+      const cleanText = text.replace(/[*#_`]/g, '').replace(/\[.*?\]\(.*?\)/g, '');
+      const utterance = new SpeechSynthesisUtterance(cleanText);
       utterance.lang = language === "English" ? "en-US" : "hi-IN";
+      utterance.rate = 0.95; // Slightly slower for better clarity
       window.speechSynthesis.speak(utterance);
     }
   };
@@ -163,25 +168,35 @@ export default function Home() {
             setAttachedFiles([]);
             setIsLoading(false);
             
+            let buffer = "";
             while (true) {
                 const { done, value } = await reader!.read();
                 if (done) break;
                 const chunk = decoder.decode(value, { stream: true });
-                const lines = chunk.split('\n').filter(Boolean);
+                buffer += chunk;
+                
+                const lines = buffer.split('\n');
+                buffer = lines.pop() || "";
+                
                 for (const line of lines) {
+                    if (!line.trim()) continue;
                     try {
                         const data = JSON.parse(line);
                         if (data.text) {
                             setMessages(prev => {
                                 const newMsg = [...prev];
-                                newMsg[newMsg.length - 1].content += data.text;
+                                const last = { ...newMsg[newMsg.length - 1] };
+                                last.content += data.text;
+                                newMsg[newMsg.length - 1] = last;
                                 return newMsg;
                             });
                         }
                         if (data.sources) {
                             setMessages(prev => {
                                 const newMsg = [...prev];
-                                newMsg[newMsg.length - 1].sources = data.sources;
+                                const last = { ...newMsg[newMsg.length - 1] };
+                                last.sources = data.sources;
+                                newMsg[newMsg.length - 1] = last;
                                 return newMsg;
                             });
                         }
@@ -386,8 +401,8 @@ export default function Home() {
               <Menu size={22} />
             </button>
             <div>
-              <h2 className="font-semibold text-base">Local Study AI</h2>
-              <p className="text-xs opacity-70">
+              <h2 className="font-semibold text-base text-gray-900 dark:text-gray-100">Bharat Study Chatbot</h2>
+              <p className="text-xs opacity-70 text-gray-700 dark:text-gray-300">
                 {attachedFiles.length > 0 ? `📄 ${attachedFiles.length} file(s) attached` : "📚 Ready to help you study"}
               </p>
             </div>
@@ -452,8 +467,10 @@ export default function Home() {
                 key={idx} 
                 className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
               >
-                <div className={`max-w-[90%] sm:max-w-[80%] md:max-w-[70%] p-4 rounded-2xl ${msg.role === "user" ? "bg-gradient-to-br from-blue-600 to-indigo-600 text-white rounded-tr-sm" : "glass-panel rounded-tl-sm"}`}>
-                  <p className="whitespace-pre-wrap leading-relaxed text-sm sm:text-base">{msg.content}</p>
+                <div className={`max-w-[90%] sm:max-w-[80%] md:max-w-[70%] p-4 rounded-2xl ${msg.role === "user" ? "bg-gradient-to-br from-blue-600 to-indigo-600 text-white font-medium rounded-tr-sm shadow-md" : "glass-panel text-gray-900 dark:text-gray-100 rounded-tl-sm shadow-sm"}`}>
+                  <div className="prose prose-sm sm:prose-base dark:prose-invert max-w-none text-base sm:text-lg whitespace-pre-wrap leading-relaxed font-medium">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
+                  </div>
                   
                   {msg.role === "bot" && (
                     <button onClick={() => playAudio(msg.content)} className="mt-2 p-1.5 rounded-full hover:bg-black/5 dark:hover:bg-white/5 transition-colors" title="Read Aloud">
@@ -547,12 +564,19 @@ export default function Home() {
 
             {/* Message Input */}
             <form onSubmit={handleSendMessage} className="flex-1 flex items-center gap-1 sm:gap-2 min-w-0">
-              <input 
-                type="text" 
+              <TextareaAutosize 
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSendMessage();
+                  }
+                }}
+                minRows={1}
+                maxRows={6}
                 placeholder={attachedFiles.length > 0 ? `Ask about ${attachedFiles.length} file(s)...` : "Message Bharat Study..."}
-                className="flex-1 bg-transparent border-none focus:outline-none focus:ring-0 px-2 text-sm sm:text-base min-w-0"
+                className="flex-1 bg-transparent border-none focus:outline-none focus:ring-0 px-3 py-3 text-base sm:text-lg min-w-0 resize-none text-gray-900 dark:text-gray-100 font-medium placeholder-gray-500"
                 disabled={isLoading}
               />
 

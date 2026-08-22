@@ -8,8 +8,9 @@ from deep_translator import GoogleTranslator
 class LocalStudyAgent:
     def __init__(self):
         print("Initializing Local AI Model (this may take a while to download if it's the first time)...")
-        # Using Llama 3.2 3B for significantly faster CPU speeds and high precision
-        self.model = GPT4All("Llama-3.2-3B-Instruct-Q4_0.gguf")
+        # UPGRADED to Meta-Llama-3-8B-Instruct.Q4_0.gguf for highly advanced reasoning.
+        # This is the smartest CPU-friendly model that won't crash and understands complex instructions.
+        self.model = GPT4All("Meta-Llama-3-8B-Instruct.Q4_0.gguf", n_ctx=4096)
         
         # 1. Vector Database (ChromaDB) Setup for document search
         self.chroma_client = chromadb.PersistentClient(path="./chroma_db")
@@ -211,10 +212,10 @@ class LocalStudyAgent:
             response = (
                 "🙏 Namaste! I am the Bharat Study Chatbot — your AI study companion for UPSC, Defence, and Tech exam preparation.\n\n"
                 "How can I help you today? Here are some questions you can ask me:\n"
-                "👉 \"What is the news today?\"\n"
-                "👉 \"Explain Indian economics\"\n"
-                "👉 \"What are the Fundamental Rights in the Constitution?\"\n"
-                "👉 \"Summarize the document I just uploaded\"\n\n"
+                "👉 \"Create a 30-day Study Roadmap for UPSC Prelims\"\n"
+                "👉 \"Review my answer for the 1857 Revolt (Answer Writing Feedback)\"\n"
+                "👉 \"Start a Mock Interview for GPSC\"\n"
+                "👉 \"What is the news today?\"\n\n"
                 "You can also change the language using the globe icon below!"
             )
             final_text = self.translate_text(response, language)
@@ -254,18 +255,24 @@ class LocalStudyAgent:
                 context_str = "\n".join(context_chunks[:3])
                 
                 system_prompt = (
-                    "You are Bharat Study Chatbot, a highly intelligent document reader and summarizer. "
-                    "Use the following document text and the chat history to answer the user's question accurately. "
-                    "Even if the user's question contains grammar issues, strange punctuation, or inconsistent casing, "
-                    "interpret their intent and provide the best possible answer from the text. "
-                    "If the answer is not in the text, use your expert knowledge to answer.\n\n"
+                    "1. You are the Bharat Study Chatbot, an advanced AI Mentor built for UPSC, GPSC, SSC, and PSC aspirants.\n"
+                    "2. When explaining concepts, ALWAYS use UPSC-Style Structured Answers: provide a clear Introduction, a main Body with bullet points and subheadings, and a crisp Conclusion.\n"
+                    "3. If a user asks for a Study Roadmap, generate a highly personalized, structured day-by-day study plan.\n"
+                    "4. If a user pastes an answer, provide elite 'Answer Writing Feedback' (evaluate Introduction, Body, Conclusion, and suggest improvements/marks).\n"
+                    "5. If a user asks for 'Mock Interview', ask them a tough interview question and wait for their response to evaluate them.\n"
+                    "6. Base your answers strictly on the provided context if available, otherwise use your expert knowledge.\n"
+                    "7. Answer in the language requested by the user, but maintain high-quality academic language.\n\n"
                     f"Document Context:\n{context_str}"
                 )
             else:
                 system_prompt = (
-                    "You are Bharat Study Chatbot, a highly knowledgeable AI study assistant specialized in the UPSC syllabus, "
-                    "current affairs, and general study preparation. Use the chat history to understand context. Interpret the user's question despite any casing, "
-                    "punctuation, or grammar inconsistencies and answer clearly, concisely, and accurately."
+                    "1. You are the Bharat Study Chatbot, an advanced AI Mentor built for UPSC, GPSC, SSC, and PSC aspirants.\n"
+                    "2. When explaining concepts, ALWAYS use UPSC-Style Structured Answers: provide a clear Introduction, a main Body with bullet points and subheadings, and a crisp Conclusion.\n"
+                    "3. If a user asks for a Study Roadmap, generate a highly personalized, structured day-by-day study plan.\n"
+                    "4. If a user pastes an answer, provide elite 'Answer Writing Feedback' (evaluate Introduction, Body, Conclusion, and suggest improvements/marks).\n"
+                    "5. If a user asks for 'Mock Interview', ask them a tough interview question and wait for their response to evaluate them.\n"
+                    "6. Base your answers strictly on the provided context if available, otherwise use your expert knowledge.\n"
+                    "7. Answer in the language requested by the user, but maintain high-quality academic language.\n\n"
                 )
                 sources = ["Local LLM Pre-trained Knowledge Base"]
         else:
@@ -279,10 +286,12 @@ class LocalStudyAgent:
         # Build the Llama-3 style prompt with full history
         full_prompt = f"<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n{system_prompt}<|eot_id|>"
         
-        # Append history to prompt
+        # Append history to prompt (truncate old messages to save tokens)
         for msg in history:
             role_map = "user" if msg.get("role") == "user" else "assistant"
             content = msg.get("content", "")
+            if len(content) > 500:
+                content = content[:500] + "... [truncated]"
             full_prompt += f"<|start_header_id|>{role_map}<|end_header_id|>\n{content}<|eot_id|>"
             
         # Append the new prompt
@@ -292,7 +301,7 @@ class LocalStudyAgent:
             def llm_generator():
                 print("Streaming response via Local LLM...")
                 try:
-                    for token in self.model.generate(full_prompt, max_tokens=350, temp=0.2, streaming=True):
+                    for token in self.model.generate(full_prompt, max_tokens=1500, temp=0.2, streaming=True):
                         yield json.dumps({"text": token}) + "\n"
                 except Exception as e:
                     print(f"LLM Stream Error: {e}")
@@ -303,7 +312,7 @@ class LocalStudyAgent:
         else:
             try:
                 print("Generating response via Local LLM...")
-                output = self.model.generate(full_prompt, max_tokens=350, temp=0.2)
+                output = self.model.generate(full_prompt, max_tokens=1500, temp=0.2)
                 response_text = output.strip()
             except Exception as e:
                 print(f"LLM Generation Error: {e}")
