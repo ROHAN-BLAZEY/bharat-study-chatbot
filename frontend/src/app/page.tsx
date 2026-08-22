@@ -265,7 +265,7 @@ export default function Home() {
             <h1 className="text-3xl font-bold mb-2">Bharat Study</h1>
             <p className="text-sm opacity-80">Your AI Study Companion</p>
           </div>
-          <form onSubmit={handleLogin} className="space-y-4">
+          <form onSubmit={handleLogin} className="space-y-4" suppressHydrationWarning>
             <div suppressHydrationWarning>
               <label className="block text-sm font-medium mb-1">Email / Username</label>
               <input 
@@ -288,7 +288,7 @@ export default function Home() {
                 suppressHydrationWarning
               />
             </div>
-            <button type="submit" className="w-full py-3 mt-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold rounded-xl transition-all shadow-lg hover:shadow-blue-500/30 active:scale-[0.98]">
+            <button type="submit" suppressHydrationWarning className="w-full py-3 mt-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold rounded-xl transition-all shadow-lg hover:shadow-blue-500/30 active:scale-[0.98]">
               {isLoginView ? "Enter Chatbot" : "Register & Enter"}
             </button>
             <p className="text-center text-sm mt-4 opacity-80 cursor-pointer hover:underline" onClick={() => setIsLoginView(!isLoginView)}>
