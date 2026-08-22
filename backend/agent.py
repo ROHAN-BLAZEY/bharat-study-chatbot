@@ -201,31 +201,6 @@ class LocalStudyAgent:
         prompt_lower = prompt.strip().lower()
         import re
         import json
-        import time
-        
-        # --- DEMO HACK: INSTANT ANSWERS ---
-        demo_response = None
-        
-        if "who are you" in prompt_lower or "what is your purpose" in prompt_lower or "what do you do" in prompt_lower:
-            demo_response = "I am the Bharat Study Chatbot, an advanced AI Mentor designed specifically for Indian students preparing for competitive exams like UPSC, GPSC, SSC, and PSC. My purpose is to provide structured study roadmaps, evaluate your answer writing, and explain complex topics securely and completely offline to protect your data privacy."
-        elif "tell me about upsc" in prompt_lower:
-            demo_response = "The Union Public Service Commission (UPSC) conducts the Civil Services Examination (CSE) in India to recruit candidates for top administrative positions like IAS, IPS, and IFS.\n\n**The exam consists of three stages:**\n1. **Prelims:** Objective type qualifying papers (GS and CSAT).\n2. **Mains:** Nine descriptive papers, including Essay, General Studies (I-IV), and Optional subjects.\n3. **Interview (Personality Test):** Assesses your overall personality and administrative traits.\n\nConsistent study, current affairs awareness, and answer writing practice are the keys to clearing this prestigious exam."
-        elif "explain cd exam syllabus" in prompt_lower:
-            demo_response = "The Combined Defence Services (CDS) examination is conducted by UPSC for recruitment into the Indian Military Academy, Naval Academy, Air Force Academy, and Officers Training Academy.\n\n**The syllabus comprises three main subjects:**\n1. **English:** Tests your understanding of English and workmanlike use of words (Comprehension, Synonyms, Antonyms, Spotting Errors).\n2. **General Knowledge:** Covers current events, History of India, Geography, and everyday science.\n3. **Elementary Mathematics:** Includes Arithmetic, Algebra, Trigonometry, Geometry, Mensuration, and Statistics.\n\n*(Note: Candidates for the Officers Training Academy (OTA) only need to appear for English and General Knowledge.)*"
-
-        if demo_response:
-            final_text = self.translate_text(demo_response, language)
-            if stream:
-                # Simulate realistic typing speed instantly
-                words = final_text.split(" ")
-                for word in words:
-                    yield json.dumps({"text": word + " ", "sources": ["Local Demo Cache"]}) + "\n"
-                    time.sleep(0.04) 
-                return
-            else:
-                yield json.dumps({"response": final_text, "sources": ["Local Demo Cache"]})
-                return
-        # --- END OF DEMO HACK ---
         
         # 1. Greetings
         greetings = ["hi", "hello", "hey", "how are you", "good morning", 
