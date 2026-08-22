@@ -167,12 +167,18 @@ export default function Home() {
             const decoder = new TextDecoder();
             setMessages((prev) => [...prev, { role: "bot", content: "", sources: [] }]);
             setAttachedFiles([]);
-            setIsLoading(false);
             
             let buffer = "";
+            let isFirstChunk = true;
             while (true) {
                 const { done, value } = await reader!.read();
                 if (done) break;
+                
+                if (isFirstChunk) {
+                    setIsLoading(false);
+                    isFirstChunk = false;
+                }
+                
                 const chunk = decoder.decode(value, { stream: true });
                 buffer += chunk;
                 

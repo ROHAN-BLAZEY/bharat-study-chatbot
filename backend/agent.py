@@ -250,10 +250,10 @@ class LocalStudyAgent:
         if self.collection.count() > 0:
             summary_keywords = ["summarize", "summary", "explain", "what is in", "content", "tell me about", "read"]
             if any(kw in search_query for kw in summary_keywords):
-                # Pull first 3 chunks for summary
-                all_data = self.collection.get(limit=3)
-                context_chunks = all_data['documents']
-                sources = list(set([m['source'] for m in all_data['metadatas']]))
+                # Pull most recent 3 chunks for summary
+                all_data = self.collection.get()
+                context_chunks = all_data['documents'][-3:] if all_data['documents'] else []
+                sources = list(set([m['source'] for m in all_data['metadatas'][-3:]])) if all_data['metadatas'] else []
             else:
                 results = self.search_documents(search_query, n_results=3)
                 context_chunks = results['documents'][0] if results['documents'] and results['documents'][0] else []
