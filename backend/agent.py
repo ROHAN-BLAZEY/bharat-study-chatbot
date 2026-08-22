@@ -249,7 +249,10 @@ class LocalStudyAgent:
         
         if self.collection.count() > 0:
             summary_keywords = ["summarize", "summary", "explain", "what is in", "content", "tell me about", "read"]
-            if any(kw in search_query for kw in summary_keywords):
+            # Only trigger generic summary if the query is very short and generic
+            is_generic_summary = any(kw in search_query for kw in summary_keywords) and len(search_query.split()) <= 4
+            
+            if is_generic_summary:
                 # Pull most recent 2 chunks for summary to speed up CPU inference
                 all_data = self.collection.get()
                 context_chunks = all_data['documents'][-2:] if all_data['documents'] else []
