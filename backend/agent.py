@@ -248,11 +248,19 @@ class LocalStudyAgent:
         search_query = re.sub(r'[^a-zA-Z0-9\s]', ' ', prompt).lower().strip()
         
         if self.collection.count() > 0:
-            results = self.search_documents(search_query, n_results=3)
-            if results['documents'] and results['documents'][0] and len(results['documents'][0]) > 0:
-                context_chunks = results['documents'][0]
-                sources = list(set([meta['source'] for meta in results['metadatas'][0]]))
-                context_str = "\n".join(context_chunks[:3])
+            summary_keywords = ["summarize", "summary", "explain", "what is in", "content", "tell me about", "read"]
+            if any(kw in search_query for kw in summary_keywords):
+                # Pull first 3 chunks for summary
+                all_data = self.collection.get(limit=3)
+                context_chunks = all_data['documents']
+                sources = list(set([m['source'] for m in all_data['metadatas']]))
+            else:
+                results = self.search_documents(search_query, n_results=3)
+                context_chunks = results['documents'][0] if results['documents'] and results['documents'][0] else []
+                sources = list(set([meta['source'] for meta in results['metadatas'][0]])) if results['metadatas'] and results['metadatas'][0] else []
+                
+            if context_chunks:
+                context_str = "\n".join(context_chunks)
                 
                 system_prompt = (
                     "1. You are the Bharat Study Chatbot, an advanced AI Mentor built for UPSC, GPSC, SSC, and PSC aspirants.\n"
@@ -260,7 +268,7 @@ class LocalStudyAgent:
                     "3. If a user asks for a Study Roadmap, generate a highly personalized, structured day-by-day study plan.\n"
                     "4. If a user pastes an answer, provide elite 'Answer Writing Feedback' (evaluate Introduction, Body, Conclusion, and suggest improvements/marks).\n"
                     "5. If a user asks for 'Mock Interview', ask them a tough interview question and wait for their response to evaluate them.\n"
-                    "6. Base your answers strictly on the provided context if available, otherwise use your expert knowledge.\n"
+                    "6. Base your answers strictly on the provided Document Context if available, otherwise use your expert knowledge.\n"
                     "7. Answer in the language requested by the user, but maintain high-quality academic language.\n\n"
                     f"Document Context:\n{context_str}"
                 )

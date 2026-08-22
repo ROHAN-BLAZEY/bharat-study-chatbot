@@ -412,7 +412,7 @@ export default function Home() {
               <span className="font-semibold flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div> Connected</span>
               <span className="opacity-80">Document Search Active</span>
               {attachedFiles.length > 0 && (
-                <span className="opacity-80 flex items-center gap-1 mt-2 text-blue-600 dark:text-blue-400"><FileText size={14}/> {attachedFiles.length} file(s) attached</span>
+                <span className="opacity-80 flex items-center gap-1 mt-2 text-blue-600 dark:text-blue-400"><FileText size={14}/> {attachedFiles.map(f => f.name).join(", ")} attached</span>
               )}
             </div>
           </div>
@@ -439,7 +439,7 @@ export default function Home() {
               >
               <h2 className="font-semibold text-base text-black">Bharat Study Chatbot</h2>
               <p className="text-xs opacity-70 text-gray-800">
-                {attachedFiles.length > 0 ? `📄 ${attachedFiles.length} file(s) attached` : "📚 Ready to help you study"}
+                {attachedFiles.length > 0 ? `📄 ${attachedFiles.map(f => f.name).join(", ")} attached` : "📚 Ready to help you study"}
               </p>
             </div>
           </div>
@@ -611,7 +611,7 @@ export default function Home() {
                 }}
                 minRows={1}
                 maxRows={6}
-                placeholder={attachedFiles.length > 0 ? `Ask about ${attachedFiles.length} file(s)...` : "Message Bharat Study..."}
+                placeholder={attachedFiles.length > 0 ? `Ask about ${attachedFiles.map(f => f.name).join(", ")}...` : "Message Bharat Study..."}
                 className="flex-1 bg-transparent border-none focus:outline-none focus:ring-0 px-3 py-3 text-base sm:text-lg min-w-0 resize-none text-black font-semibold placeholder-gray-800"
                 disabled={isLoading}
               />
@@ -637,9 +637,10 @@ export default function Home() {
             {attachedFiles.length > 0 && (
               <button 
                 onClick={() => setAttachedFiles([])}
-                className="absolute -top-10 left-4 glass-panel px-3 py-1 rounded-full text-xs flex items-center gap-1 text-red-500 hover:bg-red-500/10 transition-colors"
+                className="absolute -top-10 left-4 glass-panel px-3 py-1 rounded-full text-xs flex items-center gap-1 text-red-500 hover:bg-red-500/10 transition-colors shadow-sm"
+                title="Remove attached file(s)"
               >
-                Clear {attachedFiles.length} file(s) <X size={12}/>
+                Clear {attachedFiles.map(f => f.name).join(", ")} <X size={12}/>
               </button>
             )}
           </div>
