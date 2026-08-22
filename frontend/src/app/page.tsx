@@ -37,6 +37,8 @@ export default function Home() {
   const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
+  const [showHistory, setShowHistory] = useState(true);
+  const [chatHistory, setChatHistory] = useState(["UPSC Prelims Strategy", "History Notes Analysis", "Polity Mock Questions", "Geography PDF Summary"]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const langDropdownRef = useRef<HTMLDivElement>(null);
@@ -106,9 +108,6 @@ export default function Home() {
   }, []);
 
   const getBaseUrl = () => {
-    if (typeof window !== "undefined") {
-      return `http://${window.location.hostname}:8080`;
-    }
     return "http://127.0.0.1:8080";
   };
 
@@ -333,15 +332,55 @@ export default function Home() {
         </div>
         
         <div className="p-4 flex-1 overflow-y-auto space-y-6">
-          <div>
-            <p className="text-xs uppercase font-bold opacity-50 mb-2">User</p>
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold text-sm">
-                {username.charAt(0).toUpperCase()}
+            {/* New Chat Button */}
+            <button 
+              onClick={() => { setMessages([]); setSidebarOpen(false); }}
+              className="w-full text-left px-4 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold flex items-center gap-2 shadow-md hover:shadow-lg transition-all active:scale-[0.98]"
+            >
+              <MessageSquare size={18} /> + New Chat
+            </button>
+
+            {/* Chat History Section */}
+            <div>
+              <div 
+                className="flex items-center justify-between cursor-pointer mb-2 opacity-70 hover:opacity-100 transition-opacity"
+                onClick={() => setShowHistory(!showHistory)}
+              >
+                <p className="text-xs uppercase font-bold">Chat History</p>
+                <span className="text-xs">{showHistory ? "▼" : "▶"}</span>
               </div>
-              <span className="font-medium truncate">{username}</span>
+              
+              <AnimatePresence>
+                {showHistory && (
+                  <motion.div 
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    className="space-y-1 overflow-hidden"
+                  >
+                    {chatHistory.map((chat, idx) => (
+                      <button 
+                        key={idx}
+                        onClick={() => { setMessages([{ role: "user", content: `Load ${chat}` }, { role: "bot", content: `I have loaded your previous chat: ${chat}. What would you like to know?` }]); setSidebarOpen(false); }}
+                        className="w-full text-left px-3 py-2.5 rounded-lg hover:bg-black/10 dark:hover:bg-white/10 transition-colors text-sm truncate text-gray-800 dark:text-gray-200 flex items-center gap-2"
+                      >
+                        <MessageSquare size={14} className="opacity-50" /> {chat}
+                      </button>
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
-          </div>
+
+            <div>
+              <p className="text-xs uppercase font-bold opacity-50 mb-2 mt-4">User</p>
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold text-sm">
+                  {username.charAt(0).toUpperCase()}
+                </div>
+                <span className="font-medium truncate text-black">{username}</span>
+              </div>
+            </div>
 
           <div>
             <p className="text-xs uppercase font-bold opacity-50 mb-2">Quick Actions</p>
@@ -390,7 +429,14 @@ export default function Home() {
             <button className="md:hidden p-2 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 active:scale-95 transition-all" onClick={() => setSidebarOpen(true)}>
               <Menu size={22} />
             </button>
-            <div>
+            <div 
+                className="cursor-pointer hover:opacity-80 transition-opacity"
+                onClick={() => {
+                  setIsLoggedIn(false);
+                  setMessages([]);
+                }}
+                title="Go back to Home Page"
+              >
               <h2 className="font-semibold text-base text-black">Bharat Study Chatbot</h2>
               <p className="text-xs opacity-70 text-gray-800">
                 {attachedFiles.length > 0 ? `📄 ${attachedFiles.length} file(s) attached` : "📚 Ready to help you study"}
@@ -457,8 +503,8 @@ export default function Home() {
                 key={idx} 
                 className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
               >
-                <div className={`max-w-[90%] sm:max-w-[80%] md:max-w-[70%] p-4 rounded-2xl ${msg.role === "user" ? "bg-blue-100 border border-blue-200 text-black font-medium rounded-tr-sm shadow-md" : "glass-panel text-gray-900 dark:text-gray-100 rounded-tl-sm shadow-sm"}`}>
-                  <div className="prose prose-sm sm:prose-base max-w-none text-base sm:text-lg whitespace-pre-wrap leading-relaxed font-medium">
+                <div className={`max-w-[90%] sm:max-w-[80%] md:max-w-[70%] p-4 rounded-2xl ${msg.role === "user" ? "bg-blue-100 border border-blue-200 text-black font-semibold rounded-tr-sm shadow-md" : "glass-panel text-black rounded-tl-sm shadow-sm"}`}>
+                  <div className="prose prose-sm sm:prose-base max-w-none text-base sm:text-lg whitespace-pre-wrap leading-relaxed font-medium prose-p:text-black prose-headings:text-black prose-strong:text-black prose-strong:font-bold prose-li:text-black">
                     <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
                   </div>
                   
