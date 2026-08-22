@@ -10,7 +10,7 @@ class LocalStudyAgent:
         print("Initializing Local AI Model (this may take a while to download if it's the first time)...")
         # UPGRADED to Meta-Llama-3-8B-Instruct.Q4_0.gguf for highly advanced reasoning.
         # This is the smartest CPU-friendly model that won't crash and understands complex instructions.
-        self.model = GPT4All("Meta-Llama-3-8B-Instruct.Q4_0.gguf", n_ctx=4096)
+        self.model = GPT4All("Meta-Llama-3-8B-Instruct.Q4_0.gguf", n_ctx=1024)
         
         # 1. Vector Database (ChromaDB) Setup for document search
         self.chroma_client = chromadb.PersistentClient(path="./chroma_db")
@@ -253,12 +253,12 @@ class LocalStudyAgent:
             is_generic_summary = any(kw in search_query for kw in summary_keywords) and len(search_query.split()) <= 4
             
             if is_generic_summary:
-                # Pull most recent 2 chunks for summary to speed up CPU inference
+                # Pull most recent 1 chunk for summary to speed up CPU inference drastically
                 all_data = self.collection.get()
-                context_chunks = all_data['documents'][-2:] if all_data['documents'] else []
-                sources = list(set([m['source'] for m in all_data['metadatas'][-2:]])) if all_data['metadatas'] else []
+                context_chunks = all_data['documents'][-1:] if all_data['documents'] else []
+                sources = list(set([m['source'] for m in all_data['metadatas'][-1:]])) if all_data['metadatas'] else []
             else:
-                results = self.search_documents(search_query, n_results=2)
+                results = self.search_documents(search_query, n_results=1)
                 context_chunks = results['documents'][0] if results['documents'] and results['documents'][0] else []
                 sources = list(set([meta['source'] for meta in results['metadatas'][0]])) if results['metadatas'] and results['metadatas'][0] else []
                 
@@ -287,11 +287,11 @@ class LocalStudyAgent:
         full_prompt = f"<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n{system_prompt}<|eot_id|>"
         
         # Append history to prompt (truncate old messages to save tokens)
-        for msg in history[-2:]:  # Only keep last 2 messages for much faster CPU inference
+        for msg in history[-1:]:  # Only keep the absolute last message for maximum CPU speed
             role_map = "user" if msg.get("role") == "user" else "assistant"
             content = msg.get("content", "")
-            if len(content) > 300:
-                content = content[:300] + "... [truncated]"
+            if len(content) > 150:
+                content = content[:150] + "... [truncated]"
             full_prompt += f"<|start_header_id|>{role_map}<|end_header_id|>\n{content}<|eot_id|>"
             
         # Append the new prompt
