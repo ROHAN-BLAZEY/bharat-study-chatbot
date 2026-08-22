@@ -391,8 +391,8 @@ export default function Home() {
               <Menu size={22} />
             </button>
             <div>
-              <h2 className="font-semibold text-base text-gray-900 dark:text-gray-100">Bharat Study Chatbot</h2>
-              <p className="text-xs opacity-70 text-gray-700 dark:text-gray-300">
+              <h2 className="font-semibold text-base text-black">Bharat Study Chatbot</h2>
+              <p className="text-xs opacity-70 text-gray-800">
                 {attachedFiles.length > 0 ? `📄 ${attachedFiles.length} file(s) attached` : "📚 Ready to help you study"}
               </p>
             </div>
@@ -566,7 +566,7 @@ export default function Home() {
                 minRows={1}
                 maxRows={6}
                 placeholder={attachedFiles.length > 0 ? `Ask about ${attachedFiles.length} file(s)...` : "Message Bharat Study..."}
-                className="flex-1 bg-transparent border-none focus:outline-none focus:ring-0 px-3 py-3 text-base sm:text-lg min-w-0 resize-none text-gray-900 dark:text-gray-100 font-medium placeholder-gray-500"
+                className="flex-1 bg-transparent border-none focus:outline-none focus:ring-0 px-3 py-3 text-base sm:text-lg min-w-0 resize-none text-black font-semibold placeholder-gray-800"
                 disabled={isLoading}
               />
 
