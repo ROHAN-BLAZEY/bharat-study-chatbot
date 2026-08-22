@@ -168,7 +168,6 @@ export default function Home() {
         if (res.headers.get('content-type')?.includes('application/x-ndjson')) {
             const reader = res.body?.getReader();
             const decoder = new TextDecoder();
-            setMessages((prev) => [...prev, { role: "bot", content: "", sources: [] }]);
             setAttachedFiles([]);
             
             let buffer = "";
@@ -178,6 +177,7 @@ export default function Home() {
                 if (done) break;
                 
                 if (isFirstChunk) {
+                    setMessages((prev) => [...prev, { role: "bot", content: "", sources: [] }]);
                     setIsLoading(false);
                     isFirstChunk = false;
                 }
