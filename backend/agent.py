@@ -316,6 +316,8 @@ class LocalStudyAgent:
                     yield json.dumps({"text": "\n[Error generating response]"}) + "\n"
                 # Send sources at the end
                 yield json.dumps({"sources": sources}) + "\n"
+                import gc
+                gc.collect()
             return llm_generator()
         else:
             try:
@@ -325,6 +327,9 @@ class LocalStudyAgent:
             except Exception as e:
                 print(f"LLM Generation Error: {e}")
                 response_text = "I encountered an error while trying to process your request."
+            
+            import gc
+            gc.collect()
 
             final_text = self.translate_text(response_text, language)
             return {"response": final_text, "model": "Local Llama-3 AI", "sources": sources}
