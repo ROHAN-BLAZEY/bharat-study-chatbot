@@ -108,6 +108,9 @@ export default function Home() {
   }, []);
 
   const getBaseUrl = () => {
+    if (typeof window !== "undefined") {
+      return `http://${window.location.hostname}:8080`;
+    }
     return "http://127.0.0.1:8080";
   };
 

@@ -250,12 +250,12 @@ class LocalStudyAgent:
         if self.collection.count() > 0:
             summary_keywords = ["summarize", "summary", "explain", "what is in", "content", "tell me about", "read"]
             if any(kw in search_query for kw in summary_keywords):
-                # Pull most recent 3 chunks for summary
+                # Pull most recent 2 chunks for summary to speed up CPU inference
                 all_data = self.collection.get()
-                context_chunks = all_data['documents'][-3:] if all_data['documents'] else []
-                sources = list(set([m['source'] for m in all_data['metadatas'][-3:]])) if all_data['metadatas'] else []
+                context_chunks = all_data['documents'][-2:] if all_data['documents'] else []
+                sources = list(set([m['source'] for m in all_data['metadatas'][-2:]])) if all_data['metadatas'] else []
             else:
-                results = self.search_documents(search_query, n_results=3)
+                results = self.search_documents(search_query, n_results=2)
                 context_chunks = results['documents'][0] if results['documents'] and results['documents'][0] else []
                 sources = list(set([meta['source'] for meta in results['metadatas'][0]])) if results['metadatas'] and results['metadatas'][0] else []
                 
@@ -295,11 +295,11 @@ class LocalStudyAgent:
         full_prompt = f"<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n{system_prompt}<|eot_id|>"
         
         # Append history to prompt (truncate old messages to save tokens)
-        for msg in history:
+        for msg in history[-2:]:  # Only keep last 2 messages for much faster CPU inference
             role_map = "user" if msg.get("role") == "user" else "assistant"
             content = msg.get("content", "")
-            if len(content) > 500:
-                content = content[:500] + "... [truncated]"
+            if len(content) > 300:
+                content = content[:300] + "... [truncated]"
             full_prompt += f"<|start_header_id|>{role_map}<|end_header_id|>\n{content}<|eot_id|>"
             
         # Append the new prompt
@@ -309,7 +309,7 @@ class LocalStudyAgent:
             def llm_generator():
                 print("Streaming response via Local LLM...")
                 try:
-                    for token in self.model.generate(full_prompt, max_tokens=1500, temp=0.2, streaming=True):
+                    for token in self.model.generate(full_prompt, max_tokens=600, temp=0.2, streaming=True):
                         yield json.dumps({"text": token}) + "\n"
                 except Exception as e:
                     print(f"LLM Stream Error: {e}")
@@ -320,7 +320,7 @@ class LocalStudyAgent:
         else:
             try:
                 print("Generating response via Local LLM...")
-                output = self.model.generate(full_prompt, max_tokens=1500, temp=0.2)
+                output = self.model.generate(full_prompt, max_tokens=600, temp=0.2)
                 response_text = output.strip()
             except Exception as e:
                 print(f"LLM Generation Error: {e}")
